@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Netflix UI</title>
+</head>
+<body>
+<div id="NetflixUIConfigPage" data-role="page" class="page type-interior pluginConfigurationPage"
+     data-controller="__plugin/netflixui.js">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="NetflixUIConfigForm">
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Netflix UI</h2>
+                    <p class="fieldDescription">
+                        Requires the <strong>File Transformation</strong> plugin. Restart Jellyfin after
+                        changing these, then hard-refresh the browser (Ctrl+Shift+R) - the web client
+                        caches aggressively.
+                    </p>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="Enabled" />
+                        <span>Enable Netflix UI</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Master switch. Turn off to get stock Jellyfin back without uninstalling.
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="HoverPreview" />
+                        <span>Hover preview cards</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Expands a card into a mini-modal with metadata and Play / Add buttons on hover.
+                        Automatically disabled on touch devices.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="HoverDelayMs">Hover delay (ms)</label>
+                    <input is="emby-input" type="number" id="HoverDelayMs" min="0" max="3000" step="50" />
+                    <div class="fieldDescription">Netflix uses roughly 400ms.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="RowCarousels" />
+                        <span>Row carousel arrows</span>
+                    </label>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="TopTenBadges" />
+                        <span>Top 10 rank badges</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Adds outlined numerals to rows whose title mentions Top / Trending / Popular.
+                    </div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="DetailModal" />
+                        <span>Detail overlay</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        Opens items in a Netflix-style overlay instead of navigating to the detail page.
+                    </div>
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="AccentColor">Accent colour</label>
+                    <input is="emby-input" type="text" id="AccentColor" placeholder="#e50914" />
+                    <div class="fieldDescription">Netflix red is <code>#e50914</code>.</div>
+                </div>
+
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input is="emby-checkbox" type="checkbox" id="FetchNetflixSans" />
+                        <span>Fetch Netflix Sans at runtime</span>
+                    </label>
+                    <div class="fieldDescription checkboxFieldDescription">
+                        <strong>Off by default and not shipped with this plugin.</strong> Netflix Sans is a
+                        proprietary Dalton Maag typeface licensed to Netflix, so it is deliberately not
+                        redistributed here. Enabling this downloads it to your server at runtime. If your
+                        Jellyfin is reachable from the internet you are then serving that font publicly -
+                        that is your call to make. Left off, the theme uses Inter / Helvetica Neue, which
+                        is visually very close.
+                    </div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = '58c4919a-9515-46ce-a114-c0336d3f830f';
+
+            var fields = [
+                ['Enabled', 'checkbox'],
+                ['HoverPreview', 'checkbox'],
+                ['HoverDelayMs', 'number'],
+                ['RowCarousels', 'checkbox'],
+                ['TopTenBadges', 'checkbox'],
+                ['DetailModal', 'checkbox'],
+                ['FetchNetflixSans', 'checkbox'],
+                ['AccentColor', 'text']
+            ];
+
+            document.querySelector('#NetflixUIConfigPage').addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    fields.forEach(function (f) {
+                        var node = document.querySelector('#' + f[0]);
+                        if (!node) { return; }
+                        if (f[1] === 'checkbox') { node.checked = !!config[f[0]]; }
+                        else { node.value = config[f[0]] != null ? config[f[0]] : ''; }
+                    });
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            document.querySelector('#NetflixUIConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    fields.forEach(function (f) {
+                        var node = document.querySelector('#' + f[0]);
+                        if (!node) { return; }
+                        if (f[1] === 'checkbox') { config[f[0]] = node.checked; }
+                        else if (f[1] === 'number') { config[f[0]] = parseInt(node.value, 10) || 0; }
+                        else { config[f[0]] = node.value; }
+                    });
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+                return false;
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>

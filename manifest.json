@@ -1,0 +1,12 @@
+[
+  {
+    "guid": "58c4919a-9515-46ce-a114-c0336d3f830f",
+    "name": "Netflix UI",
+    "description": "Turns the Jellyfin web client into a Netflix-alike: hover-preview cards that expand into a mini-modal, row carousels, Top 10 rank badges, and a Netflix-style detail overlay. Requires the File Transformation plugin.",
+    "overview": "Turn Jellyfin into a Netflix-alike.",
+    "owner": "austinnorgaard",
+    "category": "Theme",
+    "imageUrl": "",
+    "versions": []
+  }
+]

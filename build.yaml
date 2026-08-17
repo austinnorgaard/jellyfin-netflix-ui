@@ -1,0 +1,22 @@
+---
+name: "Netflix UI"
+guid: "58c4919a-9515-46ce-a114-c0336d3f830f"
+version: "1.0.0.0"
+targetAbi: "10.11.0.0"
+framework: "net9.0"
+owner: "austinnorgaard"
+overview: "Turn Jellyfin into a Netflix-alike."
+description: >
+  Restyles the Jellyfin web client as a Netflix-alike. Beyond the theme it adds
+  the interactions CSS alone cannot do: hover-preview cards that expand into a
+  mini-modal with metadata and Play / Add actions, row carousels with arrow
+  paging, Top 10 rank badges, and a Netflix-style detail overlay.
+
+  Requires the File Transformation plugin, which is the supported way to modify
+  the served jellyfin-web content without patching files on disk.
+category: "Theme"
+artifacts:
+  - "Jellyfin.Plugin.NetflixUI.dll"
+changelog: >
+  1.0.0.0 - Initial release: hover preview, row carousels, Top 10 badges,
+  detail overlay, configurable accent colour, optional runtime Netflix Sans fetch.

@@ -1,0 +1,16 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+artifacts/
+*.zip
+
+# Netflix Sans is a proprietary Dalton Maag typeface licensed to Netflix.
+# It is deliberately NOT redistributed here - the plugin fetches it at runtime
+# only if the user explicitly opts in. Never commit these.
+*.woff
+*.woff2
+*.otf
+*.ttf

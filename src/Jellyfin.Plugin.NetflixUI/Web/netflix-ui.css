@@ -1,0 +1,203 @@
+/* =============================================================================
+ * Netflix UI for Jellyfin - stylesheet
+ * Injected by the plugin via File Transformation. --nf-red is overridden at
+ * serve time from the plugin's AccentColor setting.
+ * ========================================================================== */
+
+:root {
+  --nf-bg: #141414;
+  --nf-bg-raised: #181818;
+  --nf-red: #e50914;
+  --nf-red-hover: #f6121d;
+  --nf-text: #fff;
+  --nf-text-dim: #b3b3b3;
+  --nf-font: "Netflix Sans", "Inter", -apple-system, BlinkMacSystemFont,
+             "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* ------------------------------------------------------------- base chrome */
+html.nfui-active body,
+html.nfui-active .backgroundContainer,
+html.nfui-active .mainAnimatedPage,
+html.nfui-active .skinBody {
+  background-color: var(--nf-bg) !important;
+  color: var(--nf-text);
+  font-family: var(--nf-font) !important;
+}
+html.nfui-active h1,
+html.nfui-active h2,
+html.nfui-active h3,
+html.nfui-active .sectionTitle { font-weight: 700 !important; letter-spacing: -.01em; }
+
+html.nfui-active .skinHeader {
+  background: linear-gradient(180deg, rgba(0,0,0,.9) 0%, rgba(0,0,0,.5) 60%, transparent 100%) !important;
+  border-bottom: none !important;
+  transition: background-color .35s ease;
+}
+html.nfui-active .skinHeader.headroom--not-top { background: var(--nf-bg) !important; }
+html.nfui-active .mainDrawer, html.nfui-active .navMenuOption { background-color: #000 !important; }
+html.nfui-active .navMenuOption-selected { border-left: 3px solid var(--nf-red); }
+
+/* ------------------------------------------------------------------- cards */
+html.nfui-active .cardBox,
+html.nfui-active .cardImageContainer {
+  border-radius: 4px !important;
+  background-color: var(--nf-bg-raised);
+  box-shadow: none !important;
+  border: none !important;
+}
+html.nfui-active .cardText { color: var(--nf-text-dim) !important; font-size: .85rem; }
+html.nfui-active .cardText-first { color: var(--nf-text) !important; font-weight: 500; }
+html.nfui-active .itemProgressBarForeground,
+html.nfui-active .playedIndicator { background-color: var(--nf-red) !important; }
+html.nfui-active .itemProgressBar { background-color: rgba(255,255,255,.3) !important; }
+
+/* ----------------------------------------------------------------- buttons */
+html.nfui-active .button-submit,
+html.nfui-active .emby-button.button-submit {
+  background-color: var(--nf-red) !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  border: none !important;
+}
+html.nfui-active .button-submit:hover { background-color: var(--nf-red-hover) !important; }
+html.nfui-active .detailPagePrimaryContainer .btnPlay {
+  background: #fff !important; color: #000 !important;
+  border-radius: 4px !important; font-weight: 700 !important;
+}
+html.nfui-active .raised:not(.button-submit) {
+  background: rgba(109,109,110,.7) !important;
+  color: #fff !important; border: none !important; border-radius: 4px !important;
+  text-transform: none !important;
+}
+
+/* ============================ hover preview (JS-driven) ==================== */
+.nfui-preview {
+  position: absolute;
+  z-index: 9999;
+  background: var(--nf-bg-raised);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,.85);
+  opacity: 0;
+  transform: scale(.92);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.25,.46,.45,.94);
+  font-family: var(--nf-font);
+}
+.nfui-preview-open { opacity: 1; transform: scale(1); pointer-events: auto; }
+.nfui-preview-art {
+  width: 100%; aspect-ratio: 16/9;
+  background-size: cover; background-position: center;
+  background-color: #000;
+}
+.nfui-preview-body { padding: .75rem .9rem 1rem; }
+.nfui-preview-actions { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+
+.nfui-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; cursor: pointer; font-size: .95rem; line-height: 1;
+  transition: background-color .15s ease, transform .15s ease;
+}
+.nfui-btn-play {
+  width: 2.1rem; height: 2.1rem; border-radius: 50%;
+  background: #fff; color: #000; padding-left: 2px;
+}
+.nfui-btn-play:hover { background: rgba(255,255,255,.75); }
+.nfui-btn-round {
+  width: 2.1rem; height: 2.1rem; border-radius: 50%;
+  background: rgba(42,42,42,.6); color: #fff;
+  border: 2px solid rgba(255,255,255,.5) !important;
+}
+.nfui-btn-round:hover { border-color: #fff !important; background: rgba(42,42,42,.9); }
+.nfui-btn-active { border-color: #fff !important; background: var(--nf-red) !important; }
+.nfui-btn-more { margin-left: auto; }
+
+.nfui-preview-meta {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  font-size: .82rem; color: var(--nf-text-dim); margin-bottom: .35rem;
+}
+.nfui-match { color: #46d369; font-weight: 700; }
+.nfui-rating {
+  border: 1px solid rgba(255,255,255,.4);
+  padding: 0 .35em; border-radius: 2px; font-size: .75rem;
+}
+.nfui-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .6; }
+.nfui-preview-genres { font-size: .8rem; color: var(--nf-text); opacity: .9; }
+
+/* ================================ row carousels =========================== */
+.nfui-row { position: relative; }
+.nfui-arrow {
+  position: absolute; top: 0; bottom: 2.4rem;
+  width: 3rem; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.55); color: #fff;
+  border: none; cursor: pointer; font-size: 1.5rem;
+  opacity: 0; transition: opacity .2s ease, background-color .2s ease;
+}
+.nfui-row:hover .nfui-arrow { opacity: 1; }
+.nfui-arrow:hover { background: rgba(0,0,0,.8); }
+.nfui-arrow-prev { left: 0; border-radius: 0 4px 4px 0; }
+.nfui-arrow-next { right: 0; border-radius: 4px 0 0 4px; }
+.nfui-arrow-hidden { display: none !important; }
+
+/* ================================= Top 10 badges ========================== */
+.nfui-top10 .cardBox { position: relative; overflow: visible; }
+.nfui-rank {
+  position: absolute; left: -.35em; bottom: -.15em;
+  font-family: var(--nf-font);
+  font-size: 4.5rem; font-weight: 800; line-height: .8;
+  color: #000;
+  -webkit-text-stroke: 3px rgba(255,255,255,.85);
+  paint-order: stroke fill;
+  pointer-events: none; z-index: 3;
+}
+
+/* ================================= detail modal =========================== */
+.nfui-noscroll { overflow: hidden !important; }
+.nfui-modal {
+  position: fixed; inset: 0; z-index: 10000;
+  display: none; align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 3rem 1rem;
+  font-family: var(--nf-font);
+}
+.nfui-modal-open { display: flex; }
+.nfui-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.75); }
+.nfui-modal-card {
+  position: relative; width: min(860px, 100%);
+  background: var(--nf-bg-raised); border-radius: 8px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,.9);
+  animation: nfui-pop .22s cubic-bezier(.25,.46,.45,.94);
+}
+@keyframes nfui-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+.nfui-modal-hero {
+  width: 100%; aspect-ratio: 16/9;
+  background-size: cover; background-position: center top; background-color: #000;
+  position: relative;
+}
+.nfui-modal-hero::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 55%, var(--nf-bg-raised) 100%);
+}
+.nfui-modal-close {
+  position: absolute; top: 1rem; right: 1rem; z-index: 2;
+  width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  background: #181818; color: #fff; border: none; cursor: pointer;
+  font-size: 1.4rem; line-height: 1;
+}
+.nfui-modal-close:hover { background: #333; }
+.nfui-modal-body { padding: 0 2rem 2rem; margin-top: -3rem; position: relative; z-index: 1; }
+.nfui-modal-title { font-size: 2rem; font-weight: 800; margin: 0 0 .6rem; color: #fff; }
+.nfui-modal-meta { color: var(--nf-text-dim); font-size: .9rem; margin-bottom: .9rem; }
+.nfui-modal-overview { color: #d2d2d2; line-height: 1.5; margin: 0 0 1.2rem; }
+.nfui-modal-extra { font-size: .85rem; color: var(--nf-text-dim); }
+.nfui-modal-extra span { color: #777; }
+
+@media (max-width: 640px) {
+  .nfui-preview { display: none !important; }  /* touch devices have no hover */
+  .nfui-modal-body { padding: 0 1rem 1.5rem; }
+  .nfui-modal-title { font-size: 1.4rem; }
+}
