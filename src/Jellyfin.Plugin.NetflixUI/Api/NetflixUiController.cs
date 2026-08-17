@@ -51,6 +51,7 @@ public class NetflixUiController : ControllerBase
                 rowCarousels = config?.RowCarousels ?? true,
                 topTenBadges = config?.TopTenBadges ?? true,
                 detailModal = config?.DetailModal ?? true,
+                hoverTrailers = config?.HoverTrailers ?? false,
                 accentColor = config?.AccentColor ?? "#e50914"
             }) + ";\n";
 

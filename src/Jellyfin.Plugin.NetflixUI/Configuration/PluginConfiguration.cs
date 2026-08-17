@@ -29,6 +29,16 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool DetailModal { get; set; } = true;
 
     /// <summary>
+    /// Play a muted video preview in the hover panel, like Netflix.
+    ///
+    /// OFF by default and deliberately so: it only ever uses a LOCAL trailer,
+    /// because streaming the feature itself would start a transcode on every
+    /// card hover, which on a modest server is a self-inflicted DoS. Titles
+    /// with no local trailer simply keep the still image.
+    /// </summary>
+    public bool HoverTrailers { get; set; }
+
+    /// <summary>
     /// Fetch Netflix Sans at runtime rather than shipping it.
     ///
     /// It is a proprietary Dalton Maag typeface licensed to Netflix, so it is

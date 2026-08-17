@@ -90,10 +90,32 @@ html.nfui-active .raised:not(.button-submit) {
 }
 .nfui-preview-open { opacity: 1; transform: scale(1); pointer-events: auto; }
 .nfui-preview-art {
+  position: relative;
   width: 100%; aspect-ratio: 16/9;
   background-size: cover; background-position: center;
   background-color: #000;
+  overflow: hidden;
 }
+/* Video sits over the still and cross-fades in once it actually starts, so a
+   trailer that fails to load or is blocked by autoplay policy leaves the
+   artwork visible rather than a black box. */
+.nfui-preview-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .4s ease;
+}
+.nfui-preview-video-on { opacity: 1; }
+
+.nfui-mute {
+  position: absolute; right: .7rem; bottom: .7rem; z-index: 2;
+  width: 2rem; height: 2rem; border-radius: 50%;
+  background: rgba(0,0,0,.35); color: #fff;
+  border: 1px solid rgba(255,255,255,.6);
+  cursor: pointer; font-size: .8rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color .15s ease;
+}
+.nfui-mute:hover { background: rgba(0,0,0,.7); }
 .nfui-preview-body { padding: .75rem .9rem 1rem; }
 .nfui-preview-actions { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
 
@@ -130,7 +152,41 @@ html.nfui-active .raised:not(.button-submit) {
   padding: .05em .35em; font-size: .62rem; font-weight: 600;
   letter-spacing: .04em; color: #ddd;
 }
-.nfui-preview-genres { font-size: .82rem; color: #fff; opacity: .92; }
+/* Genres use round dot separators, generously spaced, per the reference. */
+.nfui-preview-genres {
+  font-size: .82rem; color: #fff; opacity: .92;
+  display: flex; align-items: center; gap: .55rem; flex-wrap: wrap;
+}
+.nfui-preview-genres .nfui-sep {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #6d6d6d; flex: 0 0 auto;
+}
+
+/* ---- tooltips: dark chip above the button with a downward caret ---------- */
+.nfui-btn[data-tip]{ position: relative; }
+.nfui-btn[data-tip]::after,
+.nfui-btn[data-tip]::before {
+  opacity: 0; pointer-events: none;
+  transition: opacity .12s ease .35s;   /* Netflix delays these slightly */
+}
+.nfui-btn[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + .55rem); left: 50%;
+  transform: translateX(-50%);
+  background: #2a2a2a; color: #fff;
+  padding: .4em .7em; border-radius: 4px;
+  font-size: .78rem; font-weight: 500; white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,.6);
+  z-index: 5;
+}
+.nfui-btn[data-tip]::before {
+  content: ""; position: absolute;
+  bottom: calc(100% + .2rem); left: 50%; transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: #2a2a2a;
+  z-index: 5;
+}
+.nfui-btn[data-tip]:hover::after,
+.nfui-btn[data-tip]:hover::before { opacity: 1; }
 
 /* --------- landscape cards: Netflix uses 16:9 thumbnails, not posters ----- */
 html.nfui-active .card:not(.nfui-ranked-card) .cardImageContainer,
@@ -237,8 +293,135 @@ html.nfui-active .navMenuOption-selected .navMenuOptionText {
 .nfui-modal-extra { font-size: .85rem; color: var(--nf-text-dim); }
 .nfui-modal-extra span { color: #777; }
 
+/* =============================================================================
+ * RESPONSIVE / INPUT-MODE
+ *
+ * SCOPE NOTE: this plugin themes the Jellyfin WEB client only. Jellyfin's
+ * native apps (Apple TV, Android TV, Roku, iOS, Android) and the Chromecast
+ * receiver are separate codebases that never load jellyfin-web, so they are
+ * unaffected by anything here - by this or any other plugin.
+ *
+ * Everything below targets capability, not device names: hover availability,
+ * pointer precision, viewport size and motion preference. That degrades
+ * correctly on hardware nobody has tested, including devices that do not
+ * exist yet.
+ * ========================================================================== */
+
+/* ---- 1. hover preview requires a real hover-capable, precise pointer ------
+ * Touch browsers synthesise a hover on tap, which would make the panel appear
+ * and stick after every tap. Gate on capability rather than screen width, so
+ * a touchscreen laptop and a mouse-driven tablet each behave correctly. */
+@media (hover: none), (pointer: coarse) {
+  .nfui-preview { display: none !important; }
+}
+
+/* ---- 2. touch: bigger hit targets (WCAG 2.5.8 wants >= 24px, Apple 44pt) - */
+@media (pointer: coarse) {
+  .nfui-btn-play, .nfui-btn-round { width: 2.75rem; height: 2.75rem; }
+  .nfui-arrow { width: 3.5rem; }
+  .nfui-modal-close { width: 2.75rem; height: 2.75rem; }
+}
+
+/* ---- 3. phones ---------------------------------------------------------- */
 @media (max-width: 640px) {
-  .nfui-preview { display: none !important; }  /* touch devices have no hover */
+  .nfui-modal { padding: 0; }
+  .nfui-modal-card { width: 100%; border-radius: 0; min-height: 100%; }
   .nfui-modal-body { padding: 0 1rem 1.5rem; }
   .nfui-modal-title { font-size: 1.4rem; }
+  .nfui-rank { font-size: clamp(3.5rem, 20vw, 6rem); -webkit-text-stroke-width: 3px; }
+  /* Row arrows are pointless without a pointer and steal thumb room. */
+  .nfui-arrow { display: none !important; }
+}
+
+/* ---- 4. notches / rounded corners / gesture bars ------------------------- */
+@supports (padding: env(safe-area-inset-left)) {
+  html.nfui-active .skinHeader,
+  html.nfui-active .mainAnimatedPage {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  .nfui-modal-card { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* ---- 5. foldables --------------------------------------------------------
+ * Unfolded inner displays are near-square; treat them as tablets rather than
+ * letting a width-only rule pick the phone layout. */
+@media (min-width: 641px) and (max-aspect-ratio: 1/1) {
+  .nfui-modal-card { width: min(92vw, 780px); }
+}
+/* Dual-screen / hinged devices: keep the modal inside one panel so it is not
+   bisected by the physical fold. */
+@media (horizontal-viewport-segments: 2) {
+  .nfui-modal-card { width: min(46vw, 720px); }
+  .nfui-modal { justify-content: flex-start; padding-left: 2vw; }
+}
+
+/* ---- 6. ultrawide / very large desktops ----------------------------------
+ * Left unconstrained, rows on a 32:9 panel stretch to absurd card counts and
+ * the eye has to travel the whole width. Netflix caps its content column. */
+@media (min-width: 2000px) {
+  html.nfui-active .mainAnimatedPage,
+  html.nfui-active .itemsContainer { max-width: 2000px; margin-inline: auto; }
+}
+@media (min-aspect-ratio: 21/9) and (min-width: 2400px) {
+  html.nfui-active .mainAnimatedPage { max-width: 2400px; }
+}
+
+/* ---- 7. TV / 10-foot UI --------------------------------------------------
+ * Jellyfin sets .layout-tv on the body for TV-mode web clients. There is no
+ * cursor, so hover panels are wrong and focus must be unmistakable. */
+body.layout-tv .nfui-preview,
+body.layout-tv .nfui-arrow { display: none !important; }
+
+body.layout-tv .nfui-modal-title { font-size: 2.6rem; }
+body.layout-tv .nfui-modal-overview,
+body.layout-tv .nfui-modal-meta { font-size: 1.15rem; line-height: 1.6; }
+
+/* D-pad focus has to be visible from across a room. */
+body.layout-tv .card:focus-within .cardBox,
+body.layout-tv .nfui-btn:focus-visible,
+body.layout-tv .emby-button:focus-visible {
+  outline: 4px solid #fff;
+  outline-offset: 3px;
+}
+body.layout-tv .card:focus-within .cardScalable { transform: scale(1.08); }
+
+/* Overscan: many TVs crop several percent of the panel edges. */
+@media (min-width: 1900px) and (pointer: none), (min-width: 1900px) and (pointer: coarse) {
+  body.layout-tv html.nfui-active .mainAnimatedPage { padding: 0 3vw; }
+}
+
+/* ---- 8. keyboard users on any device ------------------------------------ */
+.nfui-btn:focus-visible,
+.nfui-arrow:focus-visible,
+.nfui-mute:focus-visible,
+.nfui-modal-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ---- 9. respect reduced-motion ------------------------------------------
+ * Vestibular disorders are a real accessibility need, and the scale/slide
+ * animations here are exactly the kind that trigger them. */
+@media (prefers-reduced-motion: reduce) {
+  .nfui-preview,
+  .nfui-preview-video,
+  html.nfui-active .card:not(.listItem) .cardScalable,
+  .nfui-modal-card {
+    transition: none !important;
+    animation: none !important;
+  }
+  html.nfui-active .card:not(.listItem):hover .cardScalable { transform: none; }
+  .nfui-arrow { transition: none !important; }
+}
+
+/* ---- 10. high-contrast / forced colours (Windows contrast themes) -------- */
+@media (forced-colors: active) {
+  .nfui-preview, .nfui-modal-card { border: 1px solid CanvasText; }
+  .nfui-rank { -webkit-text-stroke-color: CanvasText; }
+}
+
+/* ---- 11. print: don't waste a tree on a dark UI -------------------------- */
+@media print {
+  .nfui-preview, .nfui-modal, .nfui-arrow, .nfui-maturity { display: none !important; }
 }
