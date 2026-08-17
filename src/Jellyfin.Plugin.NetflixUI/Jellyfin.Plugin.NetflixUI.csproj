@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
+    <JellyfinVersion Condition="'$(JellyfinVersion)' == ''">10.11.8</JellyfinVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
@@ -15,9 +16,15 @@
 
   <ItemGroup>
     <!-- Jellyfin 10.11.x targets net9.0. These are compile-time only; the server
-         supplies them at runtime, so they must NOT be copied to the output. -->
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.*" Private="false" ExcludeAssets="runtime" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.*" Private="false" ExcludeAssets="runtime" />
+         supplies them at runtime, so they must NOT be copied to the output.
+
+         PIN the exact server version - do NOT use a 10.11.* wildcard. A floating
+         reference resolves to the newest patch (10.11.11), and the server then
+         refuses the plugin with "references an incompatible version of one of
+         the shared libraries" and marks it NotSupported. Bump JellyfinVersion
+         (declared in the PropertyGroup above) to match when you upgrade. -->
+    <PackageReference Include="Jellyfin.Controller" Version="$(JellyfinVersion)" Private="false" ExcludeAssets="runtime" />
+    <PackageReference Include="Jellyfin.Model" Version="$(JellyfinVersion)" Private="false" ExcludeAssets="runtime" />
   </ItemGroup>
 
   <ItemGroup>

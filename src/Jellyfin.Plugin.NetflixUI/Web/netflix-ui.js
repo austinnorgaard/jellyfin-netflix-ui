@@ -10,7 +10,51 @@
 (function () {
   'use strict';
 
-  var CFG = Object.assign({
+  /* ---------------------------------------------------------------------------
+   * Legacy-engine guards.
+   *
+   * Smart-TV browsers (Tizen, webOS) and embedded webviews can be several years
+   * behind. The whole file is deliberately ES5 - no arrow functions, no let /
+   * const, no template literals - but a few DOM/stdlib APIs still need cover.
+   * If a hard requirement is genuinely missing we bail out silently and leave
+   * stock Jellyfin working rather than throwing on every page.
+   * ------------------------------------------------------------------------ */
+  if (typeof window.Promise !== 'function' ||
+      typeof window.MutationObserver !== 'function') {
+    return;                      // too old to support; stock UI is fine
+  }
+
+  // Element.closest - absent on older WebKit/Chromium.
+  if (typeof Element !== 'undefined' && !Element.prototype.closest) {
+    var _matches = Element.prototype.matches ||
+                   Element.prototype.msMatchesSelector ||
+                   Element.prototype.webkitMatchesSelector;
+    Element.prototype.closest = function (sel) {
+      var n = this;
+      while (n && n.nodeType === 1) {
+        if (_matches && _matches.call(n, sel)) { return n; }
+        n = n.parentElement || n.parentNode;
+      }
+      return null;
+    };
+  }
+
+  // Object.assign - ES2015; trivial single-source shim is all we need.
+  var assign = typeof Object.assign === 'function' ? Object.assign : function (t) {
+    for (var i = 1; i < arguments.length; i++) {
+      var src = arguments[i];
+      if (!src) { continue; }
+      for (var k in src) { if (Object.prototype.hasOwnProperty.call(src, k)) { t[k] = src[k]; } }
+    }
+    return t;
+  };
+
+  // requestAnimationFrame - used only to force a reflow before a transition.
+  var raf = window.requestAnimationFrame ||
+            window.webkitRequestAnimationFrame ||
+            function (fn) { return setTimeout(fn, 16); };
+
+  var CFG = assign({
     enabled: true,
     hoverPreview: true,
     hoverDelayMs: 400,
@@ -372,7 +416,13 @@
 
     function page(dir) {
       var amount = Math.max(scroller.clientWidth * 0.9, 200);
-      scroller.scrollBy({ left: dir * amount, behavior: 'smooth' });
+      // scrollBy({behavior}) is not universal on older engines; degrade to an
+      // instant jump rather than doing nothing at all.
+      try {
+        scroller.scrollBy({ left: dir * amount, behavior: 'smooth' });
+      } catch (e) {
+        scroller.scrollLeft += dir * amount;
+      }
     }
 
     prev.addEventListener('click', function (e) { e.preventDefault(); page(-1); });
@@ -531,7 +581,7 @@
     document.body.appendChild(o);
 
     // Force a frame so the fade-in transition actually runs.
-    requestAnimationFrame(function () { o.classList.add(NS + '-maturity-in'); });
+    raf(function () { o.classList.add(NS + '-maturity-in'); });
 
     setTimeout(function () {
       o.classList.remove(NS + '-maturity-in');

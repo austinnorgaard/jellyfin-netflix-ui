@@ -89,19 +89,50 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 return;
             }
 
+            MethodInfo? register = pluginInterfaceType.GetMethod("RegisterTransformation");
+
+            if (register is null)
+            {
+                _logger.LogWarning("Netflix UI: File Transformation has no RegisterTransformation method. Version mismatch?");
+                return;
+            }
+
             // Matches index.html regardless of the hashed asset path jellyfin-web uses.
-            var payload = new Dictionary<string, object?>
+            string json = JsonSerializer.Serialize(new Dictionary<string, object?>
             {
                 ["id"] = Id.ToString(),
                 ["fileNamePattern"] = "index.html",
                 ["callbackAssembly"] = GetType().Assembly.FullName,
                 ["callbackClass"] = typeof(IndexHtmlTransformer).FullName,
                 ["callbackMethod"] = nameof(IndexHtmlTransformer.Transform)
-            };
+            });
 
-            pluginInterfaceType
-                .GetMethod("RegisterTransformation")?
-                .Invoke(null, new object?[] { JsonSerializer.SerializeToDocument(payload).RootElement });
+            // RegisterTransformation takes a Newtonsoft JObject, not System.Text.Json.
+            // Do NOT add a Newtonsoft PackageReference to satisfy that: Jellyfin loads
+            // each plugin into its own AssemblyLoadContext, so our Newtonsoft would be
+            // a *different* JObject type and the invoke would fail with exactly the
+            // same ArgumentException. Instead, take the parameter type straight off
+            // the method signature - that is by definition the instance File
+            // Transformation itself is bound to - and use its own Parse().
+            Type payloadType = register.GetParameters()[0].ParameterType;
+
+            MethodInfo? parse = payloadType.GetMethod(
+                "Parse",
+                BindingFlags.Public | BindingFlags.Static,
+                binder: null,
+                types: new[] { typeof(string) },
+                modifiers: null);
+
+            if (parse is null)
+            {
+                _logger.LogWarning(
+                    "Netflix UI: could not find a static Parse(string) on {Type}; cannot build the registration payload.",
+                    payloadType.FullName);
+                return;
+            }
+
+            object? payload = parse.Invoke(null, new object?[] { json });
+            register.Invoke(null, new[] { payload });
 
             _logger.LogInformation("Netflix UI: registered index.html transformation with File Transformation.");
         }
