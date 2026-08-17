@@ -35,6 +35,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         Instance = this;
         _logger = logger;
 
+        // Assets are memoised with an ETag, so a settings change must drop that
+        // cache or a new accent colour / toggle would not take effect until the
+        // next server restart.
+        ConfigurationChanged += (_, _) => Api.NetflixUiController.InvalidateCache();
+
         RegisterFileTransformation();
     }
 

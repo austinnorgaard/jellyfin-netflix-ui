@@ -1,3 +1,9 @@
+/* NOTE: these rules are intentionally NOT gated behind a JS-applied class.
+ * Jellyfin ships a service worker that caches the app shell, so a stale
+ * cache can serve an index.html without our <script> - and anything gated
+ * on that script would then render completely unstyled. The Enabled switch
+ * is enforced server-side: the plugin serves an empty stylesheet when off.
+ */
 /* =============================================================================
  * Netflix UI for Jellyfin - stylesheet
  * Injected by the plugin via File Transformation. --nf-red is overridden at
@@ -16,45 +22,73 @@
 }
 
 /* ------------------------------------------------------------- base chrome */
-html.nfui-active body,
-html.nfui-active .backgroundContainer,
-html.nfui-active .mainAnimatedPage,
-html.nfui-active .skinBody {
+body,
+.backgroundContainer,
+.mainAnimatedPage,
+.skinBody {
   background-color: var(--nf-bg) !important;
   color: var(--nf-text);
   font-family: var(--nf-font) !important;
 }
-html.nfui-active h1,
-html.nfui-active h2,
-html.nfui-active h3,
-html.nfui-active .sectionTitle { font-weight: 700 !important; letter-spacing: -.01em; }
+h1,
+h2,
+h3,
+.sectionTitle { font-weight: 700 !important; letter-spacing: -.01em; }
 
-html.nfui-active .skinHeader {
-  background: linear-gradient(180deg, rgba(0,0,0,.9) 0%, rgba(0,0,0,.5) 60%, transparent 100%) !important;
+/* Header: Netflix's bar is SOLID and static - it does not animate or fade as
+   you move around. The previous gradient + transition here is what read as
+   "animated when it shouldn't be". Only the scrolled state changes, and even
+   that is a plain colour swap. */
+.skinHeader {
+  background: var(--nf-bg) !important;
   border-bottom: none !important;
-  transition: background-color .35s ease;
+  transition: none !important;
+  box-shadow: none !important;
+  min-height: 68px;
+  padding: 0 4%;
 }
-html.nfui-active .skinHeader.headroom--not-top { background: var(--nf-bg) !important; }
-html.nfui-active .mainDrawer, html.nfui-active .navMenuOption { background-color: #000 !important; }
-html.nfui-active .navMenuOption-selected { border-left: 3px solid var(--nf-red); }
+.skinHeader.headroom--not-top { background: var(--nf-bg) !important; }
+
+/* Nav links: ~14px, grey, white on hover, active is white/semibold.
+   NOT uppercase - Jellyfin uppercases tab buttons by default. */
+.emby-tab-button {
+  text-transform: none !important;
+  font-size: .875rem !important;
+  font-weight: 400 !important;
+  color: #e5e5e5 !important;
+  letter-spacing: normal !important;
+  padding: 0 .75rem !important;
+}
+.emby-tab-button:hover { color: #b3b3b3 !important; }
+.emby-tab-button-active {
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+/* Jellyfin draws an animated underline slider under the active tab; Netflix
+   has no such indicator. */
+.emby-tabs-slider, .headerTabs { background: transparent !important; }
+.emby-tab-button::after, .emby-tabs-slider::after { display: none !important; }
+
+.mainDrawer, .navMenuOption { background-color: #000 !important; }
+.navMenuOption-selected { border-left: 3px solid var(--nf-red); }
 
 /* ------------------------------------------------------------------- cards */
-html.nfui-active .cardBox,
-html.nfui-active .cardImageContainer {
+.cardBox,
+.cardImageContainer {
   border-radius: 4px !important;
   background-color: var(--nf-bg-raised);
   box-shadow: none !important;
   border: none !important;
 }
-html.nfui-active .cardText { color: var(--nf-text-dim) !important; font-size: .85rem; }
-html.nfui-active .cardText-first { color: var(--nf-text) !important; font-weight: 500; }
-html.nfui-active .itemProgressBarForeground,
-html.nfui-active .playedIndicator { background-color: var(--nf-red) !important; }
-html.nfui-active .itemProgressBar { background-color: rgba(255,255,255,.3) !important; }
+.cardText { color: var(--nf-text-dim) !important; font-size: .85rem; }
+.cardText-first { color: var(--nf-text) !important; font-weight: 500; }
+.itemProgressBarForeground,
+.playedIndicator { background-color: var(--nf-red) !important; }
+.itemProgressBar { background-color: rgba(255,255,255,.3) !important; }
 
 /* ----------------------------------------------------------------- buttons */
-html.nfui-active .button-submit,
-html.nfui-active .emby-button.button-submit {
+.button-submit,
+.emby-button.button-submit {
   background-color: var(--nf-red) !important;
   color: #fff !important;
   border-radius: 4px !important;
@@ -62,12 +96,12 @@ html.nfui-active .emby-button.button-submit {
   text-transform: none !important;
   border: none !important;
 }
-html.nfui-active .button-submit:hover { background-color: var(--nf-red-hover) !important; }
-html.nfui-active .detailPagePrimaryContainer .btnPlay {
+.button-submit:hover { background-color: var(--nf-red-hover) !important; }
+.detailPagePrimaryContainer .btnPlay {
   background: #fff !important; color: #000 !important;
   border-radius: 4px !important; font-weight: 700 !important;
 }
-html.nfui-active .raised:not(.button-submit) {
+.raised:not(.button-submit) {
   background: rgba(109,109,110,.7) !important;
   color: #fff !important; border: none !important; border-radius: 4px !important;
   text-transform: none !important;
@@ -75,7 +109,9 @@ html.nfui-active .raised:not(.button-submit) {
 
 /* ============================ hover preview (JS-driven) ==================== */
 .nfui-preview {
-  position: absolute;
+  /* FIXED, not absolute: Jellyfin scrolls an inner container rather than the
+     window, so document-relative positioning put this off-screen. */
+  position: fixed;
   z-index: 9999;
   background: var(--nf-bg-raised);
   border-radius: 6px;
@@ -191,16 +227,16 @@ html.nfui-active .raised:not(.button-submit) {
 .nfui-btn[data-tip]:hover::before { opacity: 1; }
 
 /* --------- landscape cards: Netflix uses 16:9 thumbnails, not posters ----- */
-html.nfui-active .card:not(.nfui-ranked-card) .cardImageContainer,
-html.nfui-active .card:not(.nfui-ranked-card) .cardPadder {
+.card:not(.nfui-ranked-card) .cardImageContainer,
+.card:not(.nfui-ranked-card) .cardPadder {
   aspect-ratio: 16 / 9 !important;
   padding-bottom: 0 !important;
   height: auto !important;
 }
 
 /* ------------------ nav: active item is a translucent pill --------------- */
-html.nfui-active .emby-tab-button-active,
-html.nfui-active .navMenuOption-selected .navMenuOptionText {
+.emby-tab-button-active,
+.navMenuOption-selected .navMenuOptionText {
   background: rgba(255,255,255,.15);
   border-radius: 999px;
   padding: .25em .85em;
@@ -272,36 +308,71 @@ html.nfui-active .navMenuOption-selected .navMenuOptionText {
   background: rgba(0,0,0,.75);
 }
 .nfui-modal-card {
-  position: relative; width: min(860px, 100%);
+  position: relative; width: min(880px, 96vw);
   background: var(--nf-bg-raised); border-radius: 8px; overflow: hidden;
   box-shadow: 0 24px 60px rgba(0,0,0,.9);
   animation: nfui-pop .22s cubic-bezier(.25,.46,.45,.94);
 }
 @keyframes nfui-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+
+/* Hero fills the top ~56% like Netflix, with the title and actions sitting ON
+   it over a bottom gradient rather than below it in a separate block. */
 .nfui-modal-hero {
-  width: 100%;
-  height: 0; padding-bottom: 56.25%;          /* 16:9 fallback */
-  background-size: cover; background-position: center top; background-color: #000;
   position: relative;
+  width: 100%;
+  height: 0; padding-bottom: 56.25%;
+  background-size: cover; background-position: center top;
+  background-color: #0b0b0b;
 }
-.nfui-modal-hero::after {
-  content: ""; position: absolute;
-  top: 0; right: 0; bottom: 0; left: 0;
-  background: linear-gradient(180deg, transparent 55%, var(--nf-bg-raised) 100%);
+.nfui-modal-hero-fade {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(180deg, rgba(24,24,24,0) 45%, rgba(24,24,24,.75) 78%, var(--nf-bg-raised) 100%);
 }
+.nfui-modal-hero-body {
+  position: absolute; left: 3rem; right: 3rem; bottom: 1.6rem; z-index: 2;
+}
+.nfui-modal-title {
+  font-size: 2.4rem; font-weight: 800; margin: 0 0 1rem;
+  color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.8); line-height: 1.1;
+}
+.nfui-modal-actions { display: flex; align-items: center; gap: .7rem; }
+.nfui-modal-play {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: #fff; color: #000; border: none; cursor: pointer;
+  font-family: var(--nf-font); font-size: 1.05rem; font-weight: 700;
+  padding: .5em 1.6em; border-radius: 4px;
+  transition: background-color .15s ease;
+}
+.nfui-modal-play:hover { background: rgba(255,255,255,.75); }
+.nfui-play-glyph { font-size: .95em; }
+
 .nfui-modal-close {
-  position: absolute; top: 1rem; right: 1rem; z-index: 2;
+  position: absolute; top: 1rem; right: 1rem; z-index: 3;
   width: 2.2rem; height: 2.2rem; border-radius: 50%;
   background: #181818; color: #fff; border: none; cursor: pointer;
   font-size: 1.4rem; line-height: 1;
 }
 .nfui-modal-close:hover { background: #333; }
-.nfui-modal-body { padding: 0 2rem 2rem; margin-top: -3rem; position: relative; z-index: 1; }
-.nfui-modal-title { font-size: 2rem; font-weight: 800; margin: 0 0 .6rem; color: #fff; }
-.nfui-modal-meta { color: var(--nf-text-dim); font-size: .9rem; margin-bottom: .9rem; }
-.nfui-modal-overview { color: #d2d2d2; line-height: 1.5; margin: 0 0 1.2rem; }
-.nfui-modal-extra { font-size: .85rem; color: var(--nf-text-dim); }
-.nfui-modal-extra span { color: #777; }
+
+/* Two columns, as Netflix: overview left, cast/genres/studio right. */
+.nfui-modal-body {
+  display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;
+  padding: .5rem 3rem 2.5rem;
+}
+.nfui-modal-meta {
+  display: flex; align-items: center; gap: .7rem; flex-wrap: wrap;
+  color: #bcbcbc; font-size: .95rem; margin-bottom: 1rem;
+}
+.nfui-modal-overview { color: #fff; line-height: 1.5; margin: 0; font-size: 1rem; }
+.nfui-modal-side { font-size: .82rem; color: #fff; line-height: 1.7; }
+.nfui-modal-side span { color: #777; }
+.nfui-modal-side div { margin-bottom: .5rem; }
+
+@media (max-width: 720px) {
+  .nfui-modal-body { grid-template-columns: 1fr; gap: 1rem; padding: .5rem 1.25rem 1.75rem; }
+  .nfui-modal-hero-body { left: 1.25rem; right: 1.25rem; bottom: 1rem; }
+  .nfui-modal-title { font-size: 1.5rem; }
+}
 
 /* =============================================================================
  * RESPONSIVE / INPUT-MODE
@@ -345,8 +416,8 @@ html.nfui-active .navMenuOption-selected .navMenuOptionText {
 
 /* ---- 4. notches / rounded corners / gesture bars ------------------------- */
 @supports (padding: env(safe-area-inset-left)) {
-  html.nfui-active .skinHeader,
-  html.nfui-active .mainAnimatedPage {
+  .skinHeader,
+  .mainAnimatedPage {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
@@ -370,11 +441,11 @@ html.nfui-active .navMenuOption-selected .navMenuOptionText {
  * Left unconstrained, rows on a 32:9 panel stretch to absurd card counts and
  * the eye has to travel the whole width. Netflix caps its content column. */
 @media (min-width: 2000px) {
-  html.nfui-active .mainAnimatedPage,
-  html.nfui-active .itemsContainer { max-width: 2000px; margin-inline: auto; }
+  .mainAnimatedPage,
+  .itemsContainer { max-width: 2000px; margin-inline: auto; }
 }
 @media (min-aspect-ratio: 21/9) and (min-width: 2400px) {
-  html.nfui-active .mainAnimatedPage { max-width: 2400px; }
+  .mainAnimatedPage { max-width: 2400px; }
 }
 
 /* ---- 7. TV / 10-foot UI --------------------------------------------------
@@ -398,7 +469,7 @@ body.layout-tv .card:focus-within .cardScalable { transform: scale(1.08); }
 
 /* Overscan: many TVs crop several percent of the panel edges. */
 @media (min-width: 1900px) and (pointer: none), (min-width: 1900px) and (pointer: coarse) {
-  body.layout-tv html.nfui-active .mainAnimatedPage { padding: 0 3vw; }
+  body.layout-tv .mainAnimatedPage { padding: 0 3vw; }
 }
 
 /* ---- 8. keyboard users on any device ------------------------------------ */
@@ -416,12 +487,12 @@ body.layout-tv .card:focus-within .cardScalable { transform: scale(1.08); }
 @media (prefers-reduced-motion: reduce) {
   .nfui-preview,
   .nfui-preview-video,
-  html.nfui-active .card:not(.listItem) .cardScalable,
+  .card:not(.listItem) .cardScalable,
   .nfui-modal-card {
     transition: none !important;
     animation: none !important;
   }
-  html.nfui-active .card:not(.listItem):hover .cardScalable { transform: none; }
+  .card:not(.listItem):hover .cardScalable { transform: none; }
   .nfui-arrow { transition: none !important; }
 }
 

@@ -240,14 +240,30 @@
     hover.current = card;
 
     var r = card.getBoundingClientRect();
-    // Grow around the card's centre, the way Netflix does, and keep it on screen.
+
+    // The panel is position:FIXED, so getBoundingClientRect coordinates are used
+    // as-is with no scroll offset.
+    //
+    // This was the bug that made the hover panel invisible: it used to be
+    // position:absolute with window.scrollY/scrollX added. Jellyfin does not
+    // scroll the window - it scrolls an inner container - so window.scrollY is
+    // always 0, and the card's VIEWPORT position was being applied as a DOCUMENT
+    // position. Anywhere below the fold the panel landed off-screen, which looked
+    // like "hover preview does nothing" (and took the caret and the trailer
+    // autoplay with it, since they live inside the panel).
     var w = Math.max(r.width * 1.5, 280);
-    var left = r.left + window.scrollX - (w - r.width) / 2;
+    var left = r.left - (w - r.width) / 2;
     left = Math.max(8, Math.min(left, document.documentElement.clientWidth - w - 8));
+
+    var top = r.top - 28;
+    // Keep it fully on screen vertically too - rows near the bottom would
+    // otherwise push the metadata below the fold.
+    var maxTop = document.documentElement.clientHeight - (w * 0.5625 + 130);
+    top = Math.max(8, Math.min(top, Math.max(8, maxTop)));
 
     panel.style.width = w + 'px';
     panel.style.left = left + 'px';
-    panel.style.top = (r.top + window.scrollY - 28) + 'px';
+    panel.style.top = top + 'px';
 
     var art = qs(panel, '.' + NS + '-preview-art');
     var img = qs(card, 'img');
@@ -481,12 +497,24 @@
         '<div class="' + NS + '-modal-backdrop"></div>' +
         '<div class="' + NS + '-modal-card" role="dialog" aria-modal="true">' +
           '<button type="button" class="' + NS + '-modal-close" aria-label="Close">&times;</button>' +
-          '<div class="' + NS + '-modal-hero"></div>' +
+          '<div class="' + NS + '-modal-hero">' +
+            '<div class="' + NS + '-modal-hero-fade"></div>' +
+            '<div class="' + NS + '-modal-hero-body">' +
+              '<h2 class="' + NS + '-modal-title"></h2>' +
+              '<div class="' + NS + '-modal-actions">' +
+                '<button type="button" class="' + NS + '-modal-play">' +
+                  '<span class="' + NS + '-play-glyph">&#9654;</span> Play</button>' +
+                '<button type="button" class="' + NS + '-btn ' + NS + '-btn-round" data-act="queue" data-tip="Add to My List">+</button>' +
+                '<button type="button" class="' + NS + '-btn ' + NS + '-btn-round" data-act="like" data-tip="Rate">&#128077;</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
           '<div class="' + NS + '-modal-body">' +
-            '<h2 class="' + NS + '-modal-title"></h2>' +
-            '<div class="' + NS + '-modal-meta"></div>' +
-            '<p class="' + NS + '-modal-overview"></p>' +
-            '<div class="' + NS + '-modal-extra"></div>' +
+            '<div class="' + NS + '-modal-main">' +
+              '<div class="' + NS + '-modal-meta"></div>' +
+              '<p class="' + NS + '-modal-overview"></p>' +
+            '</div>' +
+            '<aside class="' + NS + '-modal-side"></aside>' +
           '</div>' +
         '</div>';
 
@@ -494,6 +522,21 @@
         if (ev.target.closest('.' + NS + '-modal-close') ||
             ev.target.classList.contains(NS + '-modal-backdrop')) {
           closeDetailModal();
+          return;
+        }
+        var play = ev.target.closest('.' + NS + '-modal-play');
+        if (play && modalEl.getAttribute('data-item')) {
+          closeDetailModal();
+          playItem(modalEl.getAttribute('data-item'));
+          return;
+        }
+        var rb = ev.target.closest('.' + NS + '-btn-round');
+        if (rb) {
+          var on = rb.classList.toggle(NS + '-btn-active');
+          if (rb.getAttribute('data-act') === 'queue') {
+            rb.innerHTML = on ? '&#10003;' : '+';
+            rb.setAttribute('data-tip', on ? 'Remove from My List' : 'Add to My List');
+          }
         }
       });
       document.body.appendChild(modalEl);
@@ -502,35 +545,67 @@
     modalEl.classList.add(NS + '-modal-open');
     document.body.classList.add(NS + '-noscroll');
 
+    modalEl.setAttribute('data-item', id);
+
     fetchItem(id).then(function (item) {
       var a = api();
       var hero = qs(modalEl, '.' + NS + '-modal-hero');
+
+      // Episodes frequently have no Backdrop; fall back through the image types
+      // Jellyfin actually has, else the hero renders as a black box (it did).
       if (hero && a && a.getImageUrl) {
-        var url = a.getImageUrl(item.Id, { type: 'Backdrop', maxWidth: 1280 });
+        var url = '';
+        var tries = [
+          [item.Id, 'Backdrop'],
+          [item.ParentBackdropItemId || item.SeriesId, 'Backdrop'],
+          [item.Id, 'Thumb'],
+          [item.Id, 'Primary']
+        ];
+        for (var i = 0; i < tries.length && !url; i++) {
+          if (!tries[i][0]) { continue; }
+          try {
+            var tag = (item.ImageTags || {})[tries[i][1]];
+            if (tries[i][1] === 'Backdrop' || tag || tries[i][0] !== item.Id) {
+              url = a.getImageUrl(tries[i][0], { type: tries[i][1], maxWidth: 1280 });
+            }
+          } catch (e) { /* try the next one */ }
+        }
         hero.style.backgroundImage = url ? 'url("' + url + '")' : '';
       }
 
       qs(modalEl, '.' + NS + '-modal-title').textContent = item.Name || '';
 
+      // Netflix's chip row: year, runtime or seasons, maturity, HD.
+      var meta = qs(modalEl, '.' + NS + '-modal-meta');
       var bits = [];
-      if (item.ProductionYear) { bits.push(item.ProductionYear); }
-      if (item.OfficialRating) { bits.push(item.OfficialRating); }
-      var mins = ticksToMinutes(item.RunTimeTicks);
-      if (mins) { bits.push(mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + 'm'); }
-      qs(modalEl, '.' + NS + '-modal-meta').textContent = bits.join('  •  ');
+      if (item.ProductionYear) { bits.push('<span>' + esc(item.ProductionYear) + '</span>'); }
+      if (item.Type === 'Series' && item.ChildCount) {
+        bits.push('<span>' + item.ChildCount + ' Season' + (item.ChildCount === 1 ? '' : 's') + '</span>');
+      } else {
+        var mins = ticksToMinutes(item.RunTimeTicks);
+        if (mins) { bits.push('<span>' + (mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + 'm') + '</span>'); }
+      }
+      if (item.OfficialRating) { bits.push('<span class="' + NS + '-rating">' + esc(item.OfficialRating) + '</span>'); }
+      var vs = (item.MediaStreams || []).filter(function (x) { return x.Type === 'Video'; })[0];
+      if (vs && vs.Height >= 720) { bits.push('<span class="' + NS + '-hd">' + (vs.Height >= 2160 ? '4K' : 'HD') + '</span>'); }
+      meta.innerHTML = bits.join('');
 
       qs(modalEl, '.' + NS + '-modal-overview').textContent = item.Overview || '';
 
-      var extra = qs(modalEl, '.' + NS + '-modal-extra');
+      // Right-hand column, as Netflix lays it out.
+      var side = qs(modalEl, '.' + NS + '-modal-side');
       var rows = [];
+      var cast = (item.People || []).filter(function (p) { return p.Type === 'Actor'; })
+                                    .slice(0, 4).map(function (p) { return p.Name; });
+      if (cast.length) { rows.push('<div><span>Cast:</span> ' + esc(cast.join(', ')) + '</div>'); }
       if (item.Genres && item.Genres.length) {
         rows.push('<div><span>Genres:</span> ' + esc(item.Genres.join(', ')) + '</div>');
       }
       if (item.Studios && item.Studios.length) {
         rows.push('<div><span>Studio:</span> ' +
-          esc(item.Studios.map(function (s) { return s && s.Name; }).filter(Boolean).join(', ')) + '</div>');
+          esc(item.Studios.map(function (x) { return x && x.Name; }).filter(Boolean).slice(0, 3).join(', ')) + '</div>');
       }
-      extra.innerHTML = rows.join('');
+      side.innerHTML = rows.join('');
     }).catch(function () {
       // Couldn't load metadata - don't strand the user in an empty modal.
       closeDetailModal();
