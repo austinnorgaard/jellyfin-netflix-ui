@@ -116,13 +116,16 @@
   function buildHoverPanel() {
     if (hover.panel) { return hover.panel; }
 
+    // Button order matches Netflix exactly: Play, Add, Rate, then the
+    // "more info" chevron pushed to the far right of the row.
     var p = el('div', NS + '-preview');
     p.innerHTML =
       '<div class="' + NS + '-preview-art"></div>' +
       '<div class="' + NS + '-preview-body">' +
         '<div class="' + NS + '-preview-actions">' +
           '<button type="button" class="' + NS + '-btn ' + NS + '-btn-play" title="Play">&#9654;</button>' +
-          '<button type="button" class="' + NS + '-btn ' + NS + '-btn-round" data-act="queue" title="Add to playlist">+</button>' +
+          '<button type="button" class="' + NS + '-btn ' + NS + '-btn-round" data-act="queue" title="Add to My List">+</button>' +
+          '<button type="button" class="' + NS + '-btn ' + NS + '-btn-round" data-act="like" title="Rate">&#128077;</button>' +
           '<button type="button" class="' + NS + '-btn ' + NS + '-btn-round ' + NS + '-btn-more" data-act="more" title="More info">&#9660;</button>' +
         '</div>' +
         '<div class="' + NS + '-preview-meta"></div>' +
@@ -199,16 +202,27 @@
       var genres = qs(panel, '.' + NS + '-preview-genres');
       if (!meta || !genres) { return; }
 
+      // Netflix's hover panel is: [maturity box] [seasons | runtime] [HD box].
+      // Deliberately no "% match" here - that appears on the billboard, not
+      // on card hover (verified against reference screenshots).
       var bits = [];
-      // Math.round() forces a number, so this one is safe by construction.
-      if (item.CommunityRating) { bits.push('<span class="' + NS + '-match">' + Math.round(item.CommunityRating * 10) + '% Match</span>'); }
       if (item.OfficialRating) { bits.push('<span class="' + NS + '-rating">' + esc(item.OfficialRating) + '</span>'); }
-      var mins = ticksToMinutes(item.RunTimeTicks);
-      if (mins) { bits.push(mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + 'm'); }
-      if (item.ProductionYear) { bits.push(item.ProductionYear); }
-      meta.innerHTML = bits.join('<span class="' + NS + '-dot"></span>');
 
-      genres.textContent = (item.Genres || []).slice(0, 3).join(' • ');
+      if (item.Type === 'Series' && item.ChildCount) {
+        bits.push(item.ChildCount + ' Season' + (item.ChildCount === 1 ? '' : 's'));
+      } else {
+        var mins = ticksToMinutes(item.RunTimeTicks);
+        if (mins) { bits.push(mins >= 60 ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm' : mins + 'm'); }
+      }
+
+      var stream = (item.MediaStreams || []).filter(function (s) { return s.Type === 'Video'; })[0];
+      if (stream && stream.Height >= 720) {
+        bits.push('<span class="' + NS + '-hd">' + (stream.Height >= 2160 ? '4K' : 'HD') + '</span>');
+      }
+      meta.innerHTML = bits.join(' ');
+
+      // Netflix shows genre-ish descriptors separated by mid-dots.
+      genres.textContent = (item.Genres || []).slice(0, 3).join('  •  ');
     }).catch(function () { /* metadata is a bonus, not a requirement */ });
   }
 
@@ -296,11 +310,18 @@
     section.setAttribute('data-' + NS + '-top10', '1');
     section.classList.add(NS + '-top10');
 
+    // Netflix does NOT overlay the rank on the artwork - the numeral sits
+    // *beside* a portrait poster as a sibling, both roughly full row height,
+    // outline-only with no fill. Verified against reference screenshots.
     qsa(section, '.card').slice(0, 10).forEach(function (card, i) {
-      if (qs(card, '.' + NS + '-rank')) { return; }
-      var rank = el('span', NS + '-rank', String(i + 1));
-      var box = qs(card, '.cardBox') || card;
-      box.appendChild(rank);
+      if (card.getAttribute('data-' + NS + '-ranked')) { return; }
+      card.setAttribute('data-' + NS + '-ranked', '1');
+      card.classList.add(NS + '-ranked-card');
+
+      var rank = el('span', NS + '-rank');
+      rank.textContent = String(i + 1);
+      rank.setAttribute('aria-hidden', 'true');   // decorative; order is already in the DOM
+      card.insertBefore(rank, card.firstChild);
     });
   }
 

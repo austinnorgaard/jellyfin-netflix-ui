@@ -117,16 +117,36 @@ html.nfui-active .raised:not(.button-submit) {
 .nfui-btn-more { margin-left: auto; }
 
 .nfui-preview-meta {
-  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
-  font-size: .82rem; color: var(--nf-text-dim); margin-bottom: .35rem;
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  font-size: .82rem; color: #ddd; margin-bottom: .45rem;
 }
-.nfui-match { color: #46d369; font-weight: 700; }
+/* Maturity rating and HD/4K are bordered chips on Netflix, not plain text. */
 .nfui-rating {
   border: 1px solid rgba(255,255,255,.4);
-  padding: 0 .35em; border-radius: 2px; font-size: .75rem;
+  padding: .05em .45em; font-size: .72rem; color: #ddd;
 }
-.nfui-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .6; }
-.nfui-preview-genres { font-size: .8rem; color: var(--nf-text); opacity: .9; }
+.nfui-hd {
+  border: 1px solid rgba(255,255,255,.4);
+  padding: .05em .35em; font-size: .62rem; font-weight: 600;
+  letter-spacing: .04em; color: #ddd;
+}
+.nfui-preview-genres { font-size: .82rem; color: #fff; opacity: .92; }
+
+/* --------- landscape cards: Netflix uses 16:9 thumbnails, not posters ----- */
+html.nfui-active .card:not(.nfui-ranked-card) .cardImageContainer,
+html.nfui-active .card:not(.nfui-ranked-card) .cardPadder {
+  aspect-ratio: 16 / 9 !important;
+  padding-bottom: 0 !important;
+  height: auto !important;
+}
+
+/* ------------------ nav: active item is a translucent pill --------------- */
+html.nfui-active .emby-tab-button-active,
+html.nfui-active .navMenuOption-selected .navMenuOptionText {
+  background: rgba(255,255,255,.15);
+  border-radius: 999px;
+  padding: .25em .85em;
+}
 
 /* ================================ row carousels =========================== */
 .nfui-row { position: relative; }
@@ -144,16 +164,37 @@ html.nfui-active .raised:not(.button-submit) {
 .nfui-arrow-next { right: 0; border-radius: 4px 0 0 4px; }
 .nfui-arrow-hidden { display: none !important; }
 
-/* ================================= Top 10 badges ========================== */
-.nfui-top10 .cardBox { position: relative; overflow: visible; }
+/* ================================= Top 10 rows ============================
+ * Netflix lays these out as [giant outlined numeral][portrait poster] pairs,
+ * side by side - the numeral is NOT overlaid on the artwork. Outline only,
+ * transparent fill, so the page background shows through the counter of the
+ * glyph. Portrait aspect for the poster, unlike every other row.
+ * ========================================================================== */
+.nfui-top10 .nfui-ranked-card {
+  display: flex !important;
+  align-items: flex-end;
+  overflow: visible;
+}
 .nfui-rank {
-  position: absolute; left: -.35em; bottom: -.15em;
+  flex: 0 0 auto;
   font-family: var(--nf-font);
-  font-size: 4.5rem; font-weight: 800; line-height: .8;
-  color: #000;
-  -webkit-text-stroke: 3px rgba(255,255,255,.85);
-  paint-order: stroke fill;
-  pointer-events: none; z-index: 3;
+  font-size: clamp(5rem, 11vw, 11rem);
+  font-weight: 800;
+  line-height: .78;
+  letter-spacing: -.06em;
+  color: transparent;
+  -webkit-text-stroke: 4px #6a6a6a;
+  margin-right: -.06em;   /* Netflix tucks the poster slightly over the numeral */
+  user-select: none;
+  pointer-events: none;
+}
+/* Double-digit 10 is narrower per-glyph on Netflix so the pair still fits. */
+.nfui-top10 .nfui-ranked-card:nth-child(10) .nfui-rank { letter-spacing: -.11em; }
+
+.nfui-top10 .nfui-ranked-card .cardBox,
+.nfui-top10 .nfui-ranked-card .cardImageContainer {
+  aspect-ratio: 2 / 3;    /* Top 10 uses portrait posters */
+  min-width: 0;
 }
 
 /* ================================= detail modal =========================== */

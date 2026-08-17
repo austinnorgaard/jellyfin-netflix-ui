@@ -14,3 +14,7 @@ artifacts/
 *.woff2
 *.otf
 *.ttf
+
+# CI workflow is kept locally until the gh token has the "workflow" scope.
+# Add it with:  gh auth refresh -h github.com -s workflow  then remove this line.
+.github/workflows/
